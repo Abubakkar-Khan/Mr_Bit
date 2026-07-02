@@ -1,4 +1,4 @@
-# ASCII Man: Autonomous 1-Bit Retro Art System
+# Mr. Bit: Autonomous 1-Bit Retro Art System
 > **Software Requirements Specification & System Architecture Report**
 
 A fully automated, cron-driven system that discovers high-quality images and cinematic shots from the internet, evaluates them, converts them into 1-bit retro CRT dithered art, and autonomously publishes them to a Facebook Page.
@@ -18,7 +18,7 @@ A fully automated, cron-driven system that discovers high-quality images and cin
 ---
 
 ## 1. System Overview
-**ASCII Man** operates as a completely autonomous pipeline. It queries both public domain image APIs (Metropolitan Museum, Art Institute of Chicago, Wikimedia, Openverse) and custom web scrapers (FilmGrab for cinematic stills). 
+**Mr. Bit** operates as a completely autonomous pipeline. It queries both public domain image APIs (Metropolitan Museum, Art Institute of Chicago, Wikimedia, Openverse) and custom web scrapers (FilmGrab for cinematic stills). 
 
 The system scores all fetched candidates based on contrast, composition, and category. The highest-scoring image is processed through a proprietary **Atkinson Dithering Engine** to create a 1-bit black-and-white retro image with a simulated CRT glow effect. Finally, the system automatically packages and uploads the image to a linked Facebook Page using the Graph API.
 

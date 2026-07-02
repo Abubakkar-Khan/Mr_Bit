@@ -32,7 +32,7 @@ app.use('/api/automation', automationRoutes);
 
 // Base Route for API
 app.get('/api', (req, res) => {
-  res.json({ message: 'Welcome to ASCII Man API' });
+  res.json({ message: 'Welcome to Mr. Bit API' });
 });
 
 // Serve frontend in production

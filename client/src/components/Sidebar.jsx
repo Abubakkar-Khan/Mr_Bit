@@ -18,7 +18,7 @@ export default function Sidebar() {
           <Command size={18} strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="text-sm font-semibold text-white tracking-tight">ASCII Man</h1>
+          <h1 className="text-sm font-semibold text-white tracking-tight">Mr. Bit</h1>
           <p className="text-[11px] text-[#a1a1aa] font-medium">Automated Studio</p>
         </div>
       </div>

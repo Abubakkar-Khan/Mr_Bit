@@ -1,7 +1,7 @@
 {
-  "name": "ascii-man",
+  "name": "mr-bit",
   "version": "1.0.0",
-  "description": "ASCII Man Fullstack App",
+  "description": "Mr. Bit Fullstack App",
   "scripts": {
     "install:all": "npm install --prefix server && npm install --prefix client",
     "build": "npm run build --prefix client",

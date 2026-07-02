@@ -23,7 +23,7 @@ export async function runFullPipeline() {
   lastRun = new Date();
   
   try {
-    console.log(`[${new Date().toISOString()}] Starting full ASCII Man pipeline...`);
+    console.log(`[${new Date().toISOString()}] Starting full Mr. Bit pipeline...`);
     
     // 1. Fetch & Score Images
     await imagesService.fetchAndScoreCandidates();

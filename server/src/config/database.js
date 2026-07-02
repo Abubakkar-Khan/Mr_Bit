@@ -49,7 +49,7 @@ export function initializeDatabase() {
       automation_enabled INTEGER DEFAULT 0,
       posting_time TEXT DEFAULT '10:00',
       selected_categories TEXT DEFAULT '["art","nature","architecture","portrait","history"]',
-      predefined_caption TEXT DEFAULT 'Character by character. Another daily ASCII creation by ASCII Man. #ASCIIArt #ASCIIMan',
+      predefined_caption TEXT DEFAULT 'Character by character. Another daily creation by Mr. Bit. #MrBit',
       sources_config TEXT DEFAULT '{"wikimedia":true,"artinstitute":true,"unsplash":false,"pexels":false,"pixabay":false, "metmuseum":true, "openverse":true}'
     );
 

@@ -16,7 +16,7 @@ async function startServer() {
 
     // Start Express server
     app.listen(PORT, () => {
-      console.log(`ASCII Man API server running on port ${PORT}`);
+      console.log(`Mr. Bit API server running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
