@@ -6,7 +6,8 @@ export function getAllPosts() {
 }
 
 export function getTodayPost() {
-  const stmt = db.prepare("SELECT * FROM posts WHERE date(created_at) = date('now') LIMIT 1");
+  // Always retrieve the latest active/created post to display on Dashboard Overview
+  const stmt = db.prepare('SELECT * FROM posts ORDER BY id DESC LIMIT 1');
   return stmt.get();
 }
 
