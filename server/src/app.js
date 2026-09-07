@@ -8,6 +8,7 @@ import asciiRoutes from './modules/ascii/ascii.routes.js';
 import postsRoutes from './modules/posts/posts.routes.js';
 import settingsRoutes from './modules/settings/settings.routes.js';
 import automationRoutes from './modules/automation/automation.routes.js';
+import loggerRoutes from './modules/logger/logger.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,7 @@ app.use('/api/ascii', asciiRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/automation', automationRoutes);
+app.use('/api/logs', loggerRoutes);
 
 // Base Route for API
 app.get('/api', (req, res) => {

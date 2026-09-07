@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Images, PlusSquare, Settings, History, Command } from 'lucide-react';
+import { LayoutDashboard, Images, PlusSquare, Settings, History, Command, Terminal } from 'lucide-react';
 
 export default function Sidebar() {
   const navItems = [
@@ -8,6 +8,7 @@ export default function Sidebar() {
     { to: '/candidates', icon: <Images size={16} />, label: 'Gallery' },
     { to: '/manual', icon: <PlusSquare size={16} />, label: 'Create' },
     { to: '/automation', icon: <Settings size={16} />, label: 'Settings' },
+    { to: '/debug', icon: <Terminal size={16} />, label: 'Debug & Logs' },
     { to: '/history', icon: <History size={16} />, label: 'History' },
   ];
 
@@ -19,7 +20,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="text-sm font-semibold text-white tracking-tight">Mr. Bit</h1>
-          <p className="text-[11px] text-[#a1a1aa] font-medium">Automated Studio</p>
+          <p className="text-[11px] text-[#a1a1aa] font-medium">Pinterest Visual Studio</p>
         </div>
       </div>
       
@@ -46,9 +47,9 @@ export default function Sidebar() {
         <div className="flex items-center justify-between p-3 rounded-lg border border-[#27272a] bg-[#18181b]">
           <div className="flex items-center gap-2 text-xs text-[#a1a1aa]">
             <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
-            System Status
+            Pinterest Pipeline
           </div>
-          <span className="text-xs font-medium text-white">Online</span>
+          <span className="text-xs font-medium text-white">Active</span>
         </div>
       </div>
     </div>

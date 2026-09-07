@@ -16,10 +16,23 @@ router.get('/candidates', (req, res) => {
   }
 });
 
+// Debug endpoint for inspecting all candidate lifecycle stages
+router.get('/debug/candidates', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const stage = req.query.stage && req.query.stage !== 'all' ? req.query.stage : null;
+    const candidates = repo.getAllCandidates(limit, stage);
+    res.json(candidates);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/fetch', async (req, res) => {
   try {
-    const candidates = await service.fetchAndScoreCandidates();
-    res.json({ message: 'Fetch complete', candidates });
+    const runId = req.body.runId || `manual_${Date.now()}`;
+    const candidates = await service.fetchAndScoreCandidates({ runId });
+    res.json({ message: 'Fetch and scoring complete', candidates, runId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

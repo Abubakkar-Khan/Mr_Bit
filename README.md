@@ -1,229 +1,205 @@
-# Mr. Bit: Autonomous 1-Bit Retro Art System
-> **Software Requirements Specification & System Architecture Report**
+# Mr. Bit: Autonomous Pinterest Art Discovery & 1-Bit Retro Studio
+> **Architecture & Production System Manual**
 
-A fully automated, cron-driven system that discovers high-quality images and cinematic shots from the internet, evaluates them, converts them into 1-bit retro CRT dithered art, and autonomously publishes them to a Facebook Page.
+A fully autonomous, cron-driven production system that scrapes and discovers trending digital art and cinematic visuals from **Pinterest**, filters them through an ultra-fast **3-Tier Quality & Dimension Safety Pipeline** (Saves + OpenCV + Quantized ONNX), converts winning candidates into 1-bit retro CRT dithered art, and publishes them to a linked Facebook Page.
 
 ---
 
 ## Table of Contents
 1. [System Overview](#1-system-overview)
-2. [Core Features](#2-core-features)
-3. [System Architecture](#3-system-architecture)
-4. [Automation & Data Pipeline (Sequence Diagram)](#4-automation--data-pipeline)
-5. [Database Schema (Entity-Relationship Diagram)](#5-database-schema)
-6. [Tech Stack](#6-tech-stack)
-7. [Installation & Deployment](#7-installation--deployment)
-8. [Environment Configuration](#8-environment-configuration)
+2. [Core Architecture & Pipeline](#2-core-architecture--pipeline)
+3. [The 3-Tier Quality Scoring Pipeline](#3-the-3-tier-quality-scoring-pipeline)
+4. [Debug & Observability Dashboard (`/debug`)](#4-debug--observability-dashboard)
+5. [Advanced Settings & Multi-Post Volume](#5-advanced-settings--multi-post-volume)
+6. [Database Schema](#6-database-schema)
+7. [Tech Stack](#7-tech-stack)
+8. [Installation & Quickstart](#8-installation--quickstart)
+9. [API Reference](#9-api-reference)
 
 ---
 
 ## 1. System Overview
-**Mr. Bit** operates as a completely autonomous pipeline. It queries both public domain image APIs (Metropolitan Museum, Art Institute of Chicago, Wikimedia, Openverse) and custom web scrapers (FilmGrab for cinematic stills). 
 
-The system scores all fetched candidates based on contrast, composition, and category. The highest-scoring image is processed through a proprietary **Atkinson Dithering Engine** to create a 1-bit black-and-white retro image with a simulated CRT glow effect. Finally, the system automatically packages and uploads the image to a linked Facebook Page using the Graph API.
+**Mr. Bit** continuously monitors Pinterest search and trending visual streams for high-engagement digital art, concept art, cyberpunk scenery, and illustrations (replacing legacy museum painting sources). 
 
----
-
-## 2. Core Features
-- **Intelligent Scraping & APIs**: Connects to 4+ Museum REST APIs and utilizes `cheerio` to web-scrape high-resolution cinematic stills.
-- **Image Quality Scoring**: Downloads thumbnails and evaluates raw pixel luminance variance to ensure optimal contrast for dithering.
-- **Atkinson Dithering Engine**: A custom image manipulation pipeline that discards 8-bit color for a pristine, 1-bit error-diffused pixel map, heavily stylized with Gaussian blurs and screen overlays for a glowing CRT bleed effect.
-- **Gallery Auto-Publish**: Manually click 'Select' on any image in the dashboard to immediately convert and post it.
-- **Unattended Cron Operation**: Built-in daemon schedules daily operations at user-defined intervals.
+To prevent server memory crashes and slow network downloads, the system strictly enforces **dimension bounds** (rejecting oversized 4K/8K images) while filtering out low-effort or blurry uploads. Candidates must qualify through three sequential inspection gates before being selected, converted into glowing 1-bit CRT dithered artwork, and scheduled for daily publication.
 
 ---
 
-## 3. System Architecture
-
-The architecture relies on a decoupled Client/Server model.
+## 2. Core Architecture & Pipeline
 
 ```mermaid
-graph TD
-    %% Frontend Node
-    subgraph Frontend [Client - React/Vite]
-        UI[Dashboard UI]
-        SettingsUI[Settings Panel]
-        Gallery[Candidates Gallery]
-        Create[Manual Post Generator]
+flowchart TD
+    subgraph Discovery ["1. Pinterest Discovery"]
+        P["Pinterest Search & Trending Stream"] -->|"Internal API + Cheerio Fallback"| RAW["Raw Pins Harvested"]
     end
 
-    %% Backend Node
-    subgraph Backend [Server - Node.js/Express]
-        API[Express Router]
-        Cron[Node-Cron Scheduler]
-        Scorer[Image Quality Scorer]
-        Dither[1-Bit Atkinson Engine]
-        FB[Facebook Service]
+    subgraph Gates ["2. 3-Tier Quality & Dimension Gates"]
+        RAW --> G1{"Gate 1: Engagement & Bounds<br/>Saves >= min_saves<br/>Dim: min_dim to max_dim"}
+        G1 -->|"Fail"| R1["Rejected: Oversized / Low Saves"]
+        G1 -->|"Pass"| G2{"Gate 2: OpenCV Computer Vision<br/>Laplacian Edge Variance >= min_sharpness<br/>Hasler-Süsstrunk Colorfulness"}
+        G2 -->|"Fail"| R2["Rejected: Blurry / Washed Out"]
+        G2 -->|"Pass"| G3{"Gate 3: Quantized Model<br/>INT8 ONNX Inference<br/>Aesthetic Score >= threshold"}
+        G3 -->|"Fail"| R3["Rejected: Low Aesthetic Appeal"]
+        G3 -->|"Pass"| QUAL["Qualified Art Finalists (0-100 Score)"]
     end
 
-    %% Database Node
-    subgraph Data [Storage]
-        DB[(SQLite Database)]
-        FS[File System: Images/Outputs]
+    subgraph Studio ["3. Retro Studio & Publishing"]
+        QUAL -->|"Select Top N Candidates / Day"| ATK["Atkinson Dithering & CRT Glow Engine"]
+        ATK --> FB["Facebook Graph API / Post Queue"]
     end
 
-    %% External Node
-    subgraph External [External Sources]
-        Museums[Museum APIs]
-        Scraping[FilmGrab Web Scraper]
-        GraphAPI[Facebook Graph API]
+    subgraph Control ["4. Observability & Settings"]
+        LOGS["Structured Logger (SQLite Database)"]
+        DEBUG["Debug Page UI: Step-by-Step Gate Funnel & Live Terminal"]
+        SETT["Settings: Posts/Day, Dim Bounds, Tags, Thresholds"]
     end
 
-    %% Connections
-    UI <-->|REST API| API
-    Gallery <-->|Auto-Publish Select| API
-    Create <-->|Manual Convert| API
-
-    API <--> DB
-    API <--> FS
-
-    Cron -->|Triggers Daily| API
-    
-    API -->|1. Fetch Candidates| Museums
-    API -->|1. Scrape Stills| Scraping
-    API -->|2. Evaluate Contrast| Scorer
-    API -->|3. Dither & Composite| Dither
-    API -->|4. Publish Image| FB
-    FB -->|Upload Post| GraphAPI
+    RAW -.-> LOGS
+    R1 -.-> LOGS
+    R2 -.-> LOGS
+    R3 -.-> LOGS
+    QUAL -.-> LOGS
+    LOGS --> DEBUG
+    SETT --> Discovery
+    SETT --> Gates
 ```
 
 ---
 
-## 4. Automation & Data Pipeline
+## 3. The 3-Tier Quality Scoring Pipeline
 
-The following sequence diagram outlines the end-to-end autonomous flow, which can also be triggered manually via the dashboard.
+Candidates must pass three consecutive gates:
 
-```mermaid
-sequenceDiagram
-    participant Cron as Cron Scheduler
-    participant API as Express API
-    participant Ext as APIs & Scrapers
-    participant Scorer as Quality Scorer
-    participant Dither as Atkinson Engine
-    participant FB as Facebook Graph API
-    participant DB as SQLite
+### Gate 1: Engagement & Dimension Safety Gate
+* **Purpose:** Ensures popularity via real audience curation while protecting server RAM from oversized files.
+* **Checks:**
+  * `saves_count >= min_saves` (default: $\ge 50$ saves/repins).
+  * `width, height <= max_dimension` (default: $\le 2048\text{px}$) — **Prevents downloading massive 4K/8K assets**.
+  * `width, height >= min_dimension` (default: $\ge 600\text{px}$) — Skips low-res thumbnails and icons.
 
-    Cron->>API: Trigger Daily Pipeline
-    API->>Ext: Fetch random candidates (Museums & Movies)
-    Ext-->>API: Return Image URLs & Metadata
-    
-    API->>Scorer: Evaluate composition & luminance variance
-    Scorer-->>API: Quality Scores (0-100) + Bonuses
-    
-    API->>DB: Save Candidates & Select Best
-    
-    API->>Dither: Pass best high-res image URL
-    Dither->>Dither: 1. Apply Atkinson Error Diffusion
-    Dither->>Dither: 2. Generate Blur & Screen Overlay
-    Dither-->>API: Return Retro PNG Path
-    
-    API->>DB: Save generated output record
-    
-    API->>FB: Package Form Data (Retro PNG + Caption)
-    FB-->>API: Return Facebook Post ID
-    
-    API->>DB: Update Post Status to "Posted"
+### Gate 2: OpenCV Computer Vision Metrics
+* **Purpose:** Pure mathematical visual quality inspection (runs in $< 3\text{ms}$ per image).
+* **Metrics:**
+  * **Laplacian Edge Variance:** Convolves grayscale pixel matrix with a $3 \times 3$ Laplacian kernel. Low variance ($< 20$) identifies blurry screenshots or out-of-focus imagery.
+  * **Hasler & Süsstrunk Colorfulness Index:** Computes chromatic dispersion across opposing color spaces ($rg = |R - G|$, $yb = |0.5(R + G) - B|$) to verify dynamic palette intentionality.
+  * **RMS Luminance Contrast:** Verifies tonal range and contrast depth for clean Atkinson dithering.
+
+### Gate 3: Quantized ONNX Aesthetic Model
+* **Purpose:** Semantic aesthetic appeal evaluation without GPU bloat.
+* **Implementation:** Runs an INT8 quantized ONNX vision model on CPU via `onnxruntime-node`.
+* **Output:** Normalized aesthetic score on a clean $1.0 - 10.0$ scale.
+* **Final Composite Score:**
+  $$\text{Score} = \min\left(100, (\text{Aesthetic} \times 7) + (\text{Sharpness} \times 0.2) + \min(10, \log_{10}(\text{Saves}) \times 3.3)\right)$$
+
+---
+
+## 4. Debug & Observability Dashboard (`/debug`)
+
+The `/debug` page provides complete visibility into every step of the pipeline:
+
+1. **Gate Funnel Summary:**
+   * Visual count cards tracking: *Scraped Pins* $\rightarrow$ *Gate 1 Drops* $\rightarrow$ *Gate 2 Drops* $\rightarrow$ *Gate 3 Drops* $\rightarrow$ *Qualified Finalists*.
+2. **Candidate Gate Matrix:**
+   * Interactive tabs (`All`, `Qualified`, `Gate 1 Fail`, `Gate 2 Fail`, `Gate 3 Fail`).
+   * Individual candidate inspection cards showing Pinterest saves, exact dimensions, Laplacian sharpness, ONNX score, and precise rejection reasons (e.g. `Rejected: Oversized image (3840x2160 > 2048px limit)`).
+3. **Live Diagnostic Terminal:**
+   * Real-time streaming logs with stage tags (`[SCRAPE]`, `[STAGE_1_ENGAGEMENT]`, `[STAGE_2_OPENCV]`, `[STAGE_3_ONNX]`, `[DITHER]`, `[PUBLISH]`).
+   * Filter logs by level (`INFO`, `DEBUG`, `WARN`, `ERROR`) or keyword search.
+4. **"Trigger Pipeline Now" Button:**
+   * Manually trigger an on-demand Pinterest discovery and scoring run directly from the UI.
+
+---
+
+## 5. Advanced Settings & Multi-Post Volume
+
+Configure system parameters under **Settings** (`/automation`):
+
+| Setting | Default | Description |
+| :--- | :--- | :--- |
+| **Automation Master Switch** | `Enabled` | Toggles background cron execution. |
+| **Posts Each Day** | `1` (1 to 8) | Number of posts to publish daily (evenly distributed). |
+| **Anchor Posting Time** | `10:00` | Start time for daily scheduling. |
+| **Pinterest Search Tags** | 4 tags | Custom keywords (e.g., `#concept art`, `#cyberpunk landscape`). |
+| **Max Dimension** | `2048 px` | Upper limit for image width/height (protects memory). |
+| **Min Dimension** | `600 px` | Lower limit for image width/height. |
+| **Min Pinterest Saves** | `50` | Minimum saves required to pass Gate 1. |
+| **Min Laplacian Sharpness** | `20.0` | Minimum edge sharpness to pass Gate 2. |
+| **Min Aesthetic Score** | `5.0` / 10 | Minimum model score to pass Gate 3. |
+| **Caption Template** | Custom | Predefined caption with hashtags for Facebook posting. |
+
+---
+
+## 6. Database Schema
+
+Managed via SQLite with Write-Ahead Logging (`WAL`):
+
+* **`image_candidates`**: Stores discovered pins, saves count, dimensions, OpenCV metrics, ONNX aesthetic score, gate stage (`scraped`, `rejected_stage_1`, `stage_1_passed`, `rejected_stage_2`, `stage_2_passed`, `rejected_stage_3`, `passed_all_stages`), rejection reasons, and thumbnails.
+* **`posts`**: Stores published and pending Facebook post records, dithered output paths, captions, and Facebook post IDs.
+* **`settings`**: Configuration row for scheduler, volume, dimension limits, and thresholds.
+* **`pipeline_logs`**: Persisted structured log stream with run ID, stage, level, and metadata.
+
+---
+
+## 7. Tech Stack
+
+* **Backend:** Node.js, Express 5, Better-SQLite3, Sharp (C++ libvips), ONNX Runtime (`onnxruntime-node`), Axios, Cheerio, Node-Cron.
+* **Frontend:** React 18, Vite, Tailwind CSS, Lucide React, React Router 6, React Hot Toast.
+* **Rendering:** Atkinson Dithering Algorithm, Canvas 2D, CRT scanline & Gaussian glow compositor.
+
+---
+
+## 8. Installation & Quickstart
+
+### Prerequisites
+* **Node.js**: v18.0+ 
+* **npm**: v9.0+
+
+### Setup
+```bash
+# 1. Clone repository
+git clone https://github.com/Abubakkar-Khan/Mr_Bit.git
+cd Mr_Bit
+
+# 2. Install all dependencies (client and server)
+npm run install:all
+
+# 3. Configure Environment Variables
+# Create server/.env with:
+PORT=5000
+DATABASE_URL=data/asciiman.db
+FB_PAGE_ID=your_page_id_here
+FB_PAGE_ACCESS_TOKEN=your_access_token_here
 ```
 
----
+### Running Locally
+```bash
+# Start backend server (port 5000)
+npm run dev --prefix server
 
-## 5. Database Schema
-
-The database utilizes SQLite for lightweight, fast, and reliable local persistence.
-
-```mermaid
-erDiagram
-    CANDIDATES {
-        INTEGER id PK
-        TEXT image_url
-        TEXT title
-        TEXT source_name
-        TEXT category
-        REAL quality_score
-        TEXT thumbnail_path
-        TEXT status "pending, selected, rejected"
-        DATETIME created_at
-    }
-
-    POSTS {
-        INTEGER id PK
-        INTEGER candidate_id FK
-        TEXT image_url
-        TEXT ascii_output_path
-        TEXT caption
-        TEXT facebook_post_id
-        TEXT status "pending, posted, failed"
-        TEXT error_message
-        DATETIME created_at
-    }
-
-    SETTINGS {
-        INTEGER id PK
-        INTEGER automation_enabled
-        TEXT posting_time
-        TEXT predefined_caption
-        TEXT sources_config
-    }
-
-    POSTS ||--o| CANDIDATES : "generated from"
+# In a separate terminal, start frontend (port 5173)
+npm run dev --prefix client
 ```
 
----
-
-## 6. Tech Stack
-
-- **Frontend:** React 19, Vite, Tailwind CSS v4, Lucide React (Icons), React Hot Toast
-- **Backend:** Node.js, Express, Better-SQLite3, Axios, Cheerio (Web Scraping), Node-Cron, Multer
-- **Image Processing Engine:** `sharp` (Libvips buffer manipulation)
+Navigate to `http://localhost:5173/` for the dashboard, or `http://localhost:5173/debug` for real-time pipeline diagnostics.
 
 ---
 
-## 7. Installation & Deployment
+## 9. API Reference
 
-1. **Clone the repository:**
-   Ensure you have Node.js (v18+) installed.
+### Pipeline & Discovery
+* `POST /api/images/fetch` — Trigger Pinterest discovery and 3-tier scoring.
+* `GET /api/images/candidates` — Get today's qualified candidate pool.
+* `GET /api/images/debug/candidates?stage=...` — Filter candidates across all evaluation gates.
+* `POST /api/images/select/:id` — Convert candidate to retro CRT art and publish immediately.
 
-2. **Install Backend Dependencies:**
-   ```bash
-   cd server
-   npm install
-   ```
+### Observability & Logging
+* `GET /api/logs?limit=100&stage=...&level=...` — Retrieve diagnostic logs.
+* `GET /api/logs/status` — Get active run ID and current pipeline stage.
+* `DELETE /api/logs` — Purge log history.
 
-3. **Install Frontend Dependencies:**
-   ```bash
-   cd client
-   npm install
-   ```
-
-4. **Start the Application Services:**
-   Open two terminal instances.
-   
-   *Terminal 1 (Backend):*
-   ```bash
-   cd server
-   npm run dev
-   ```
-   
-   *Terminal 2 (Frontend):*
-   ```bash
-   cd client
-   npm run dev
-   ```
-
----
-
-## 8. Environment Configuration
-
-Create a `.env` file in the `server/` directory. The application requires proper Facebook Developer credentials to publish autonomously.
-
-```env
-# server/.env
-FACEBOOK_PAGE_ID=your_page_id_here
-FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_access_token_here
-```
-
-**To obtain these credentials:**
-1. Go to [Facebook Developers](https://developers.facebook.com/).
-2. Create an Application.
-3. Request `pages_manage_posts` and `pages_read_engagement` permissions.
-4. Generate a Page Access Token for the target page.
+### Automation & Configuration
+* `GET /api/settings` — Get active settings.
+* `PUT /api/settings` — Update volume, tags, dimension bounds, and thresholds.
+* `POST /api/automation/run` — Run the full pipeline end-to-end.
+* `POST /api/automation/toggle` — Toggle master automation switch.
