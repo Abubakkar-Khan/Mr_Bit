@@ -174,7 +174,7 @@ FB_PAGE_ACCESS_TOKEN=your_access_token_here
 
 ### Running Locally
 ```bash
-# Start backend server (port 5000)
+# Start backend server (port 3001)
 npm run dev --prefix server
 
 # In a separate terminal, start frontend (port 5173)
@@ -203,3 +203,30 @@ Navigate to `http://localhost:5173/` for the dashboard, or `http://localhost:517
 * `PUT /api/settings` — Update volume, tags, dimension bounds, and thresholds.
 * `POST /api/automation/run` — Run the full pipeline end-to-end.
 * `POST /api/automation/toggle` — Toggle master automation switch.
+
+---
+
+## 10. Testing & Quality Assurance (Mocha/Chai & Jest)
+
+The project includes test suites implemented across both **Mocha + Chai** and **Jest**:
+
+### Test Suites Overview
+
+| Framework | Target Files | Coverage |
+| :--- | :--- | :--- |
+| **Mocha + Chai + Supertest** | `server/test/**/*.test.js` | Express API endpoints, SQLite persistence, OpenCV metrics, ONNX aesthetic scores |
+| **Jest** | `server/test-jest/**/*.spec.js` | OpenCV math calculations, ONNX tensor evaluation, Structured Logger, Database operations |
+
+### Running Tests
+
+```bash
+# Run all tests (Mocha + Chai AND Jest)
+npm test --prefix server
+
+# Run only Mocha & Chai test suite
+npm run test:mocha --prefix server
+
+# Run only Jest test suite
+npm run test:jest --prefix server
+```
+
